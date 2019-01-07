@@ -19,6 +19,7 @@ I created a sample config file with some simple jobs to monitor a website using
   wget command and a job to check if a nameserver is respondig using dig command
 
 ### Setup
+- Get the current version of CachetJobScheduler from [releases](https://github.com/xydian/Cachet-Job-Scheduler/releases)
 - Create /etc/CachetJobScheduler
 - Place config.toml in the created directory
 - Create /var/log/CachetJobScheduler and ensure the user you use to run the
