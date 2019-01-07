@@ -1,0 +1,41 @@
+# Sample configuration of CachetJobScheduler
+
+# host of your cachet instance
+#Host = "https://status.cachet.io/"
+Host = "https://status.cachet.io/"
+Api_Token = "askjdF9hbaKHafdas8TO4"
+
+# in this section you configure the monitoring jobs that are going to be
+# executed periodically
+[Jobs]
+  [Jobs.CheckGoogleWebsite] # this is the single identifier of each job
+  Enabled = true
+  # this is the command that is going to be executed periodically
+  # this job is testing whether the google front page can be reached
+  Command_to_execute = "wget"
+  # options that are passed to the executed command
+  Command_options = ["google.com", "--spider"]
+  # minutes to the next time the scheduler runs the comman
+  Next_check_delay = 5
+  # if the command/script exceeds its execution time by this value in seconds
+  # the scheduler will abort the execution and set the component status to the
+  # one configured below
+  Max_executing_time = 7
+  # the id of the component in cachet that is monitored by this job
+  Cachet_component_id = 1
+  # status to set when script/command execution fails (Exit code > 0)
+  Cachet_status = 3
+  # create an incident for the specified component (not yet implemented)
+  Create_incident_on_failure = true
+  # working directory of the script/command
+  Working_directory = ""
+
+  [Jobs.CheckGoogleNameserver]
+  Enabled = true
+  Command_to_execute = "dig"
+  Command_options = ["google.com", "@8.8.8.8"]
+  Next_check_delay = 5
+  Max_executing_time = 50
+  Cachet_component_id = 2
+  Cachet_status = 2
+  Working_directory = ""
