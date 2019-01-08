@@ -8,6 +8,7 @@ import (
   "time"
   "os/exec"
   "io/ioutil"
+  "strconv"
 )
 
 // Config contains basic config for the JobScheduler Instance
@@ -20,6 +21,23 @@ type Config struct {
 	Default_cachet_status              int
 	Default_create_incident_on_failure bool*/
 	Jobs map[string]Job `toml:"Jobs"`
+}
+
+// Job contains all information needed to executed a monitoring job
+type Job struct {
+	Enabled                 bool     `toml:"Enabled"`
+	PathToScript            string   `toml:"Command_to_execute"`
+	WorkingDirectory        string   `toml:"Working_directory"`
+	NextCheckDelay          int      `toml:"Next_check_delay,omitempty"`
+	MaxExecutingTime        int      `toml:"Max_executing_time,omitempty"`
+	CachetComponentID       int      `toml:"Cachet_component_id"`
+	CachetStatus            int      `toml:"Cachet_status,omitempty"`
+	CreateIncidentOnFailure bool     `toml:"Create_incident_on_failure,omitempty"`
+	Options                 []string `toml:"Command_options"`
+  NumberOfExecutionAttempts int `toml:"Number_of_execution_retries"`
+  ExecutionAttemptDelay int `toml:"Execution_retry_delay"`
+	LogFile                 *os.File
+	Name                    string
 }
 
 // FillNameStructField fills the still empty struct field name of each job
@@ -52,21 +70,6 @@ func (config *Config) Print() {
 	}
 }
 
-// Job contains all information needed to executed a monitoring job
-type Job struct {
-	Enabled                 bool     `toml:"Enabled"`
-	PathToScript            string   `toml:"Command_to_execute"`
-	WorkingDirectory        string   `toml:"Working_directory"`
-	NextCheckDelay          int      `toml:"Next_check_delay,omitempty"`
-	MaxExecutingTime        int      `toml:"Max_executing_time,omitempty"`
-	CachetComponentID       int      `toml:"Cachet_component_id"`
-	CachetStatus            int      `toml:"Cachet_status,omitempty"`
-	CreateIncidentOnFailure bool     `toml:"Create_incident_on_failure,omitempty"`
-	Options                 []string `toml:"Command_options"`
-	LogFile                 *os.File
-	Name                    string
-}
-
 // CheckConfig checks whether the configuration of a job has valid values.
 // However it doesn´t check whether the script to execute exists.
 func (job *Job) CheckConfig() error {
@@ -86,6 +89,9 @@ func (job *Job) CheckConfig() error {
 	if job.PathToScript == "" {
 		return errors.New("Path_to_script is not allowed to be empty")
 	}
+  if job.NumberOfExecutionAttempts <= 0 {
+    return errors.New("Number_of_execution_attempts has to be greater than 0")
+  }
 
 	return nil
 }
@@ -98,55 +104,68 @@ func (job *Job) WriteLog(log string) {
 
 // Execute executes a job based on the job config
 func (job *Job) Execute() (string, error) {
-	// TODO: execute job
-	executionTimer := time.Now()
+  var err error
 
-	job.WriteLog("Starting to execute job")
-	cmd := exec.Command(job.PathToScript, job.Options...)
-	if job.WorkingDirectory != "" {
-		cmd.Dir = job.WorkingDirectory
-	}
+  jobExecutionCounter := 0
+  errorExecutingJob := true
+  var jobOutput string
 
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		log.Fatal(err)
-	}
+  for (errorExecutingJob) && (job.NumberOfExecutionAttempts > jobExecutionCounter) {
+    jobExecutionCounter++
+    job.WriteLog("Starting to execute job")
 
-	err = cmd.Start()
-	if err != nil {
-		// file not found
-		job.WriteLog("The file to be executed was not found on '" + job.PathToScript + "'")
-		log.Fatal(err)
-	}
+    executionTimer := time.Now()
 
-	// Kill the process after x seconds
-	timer := time.NewTimer(time.Second * time.Duration(job.MaxExecutingTime))
-	go func(timer *time.Timer, cmd *exec.Cmd) {
-		for _ = range timer.C {
-			err = cmd.Process.Signal(os.Kill)
-			if err != nil {
-				//os.Stderr.WriteString(err.Error())
-				//job.WriteLog("Error stopping job: " + err.Error())
-			} else {
-				job.WriteLog("The job did take longer than configured in job config (Max_execution_time) " +
-					"Execution has been aborted.")
-			}
-		}
-	}(timer, cmd)
+    cmd := exec.Command(job.PathToScript, job.Options...)
+    if job.WorkingDirectory != "" {
+      cmd.Dir = job.WorkingDirectory
+    }
 
-	output, _ := ioutil.ReadAll(stdout)
-	err = cmd.Wait()
+    // TODO reset timer if job is rerun after execution tries
+    // Kill the process after x seconds
+    timer := time.NewTimer(time.Second * time.Duration(job.MaxExecutingTime))
+    go func(timer *time.Timer, cmd *exec.Cmd) {
+      for _ = range timer.C {
+        err = cmd.Process.Signal(os.Kill)
+        if err != nil {
+          //os.Stderr.WriteString(err.Error())
+          //job.WriteLog("Error stopping job: " + err.Error())
+        } else {
+          job.WriteLog("The job did take longer than configured in job config (Max_execution_time) " +
+            "Execution has been aborted.")
+        }
+      }
+    }(timer, cmd)
 
-	jobOutput := string(output)
+    stdout, err := cmd.StdoutPipe()
+    if err != nil {
+      log.Fatal(err)
+    }
 
-	if err != nil {
-		job.WriteLog("The job didn´t execute successfully")
-		job.WriteLog("output of job: " + jobOutput)
-	} else {
-		job.WriteLog("Job execution successfull (" + time.Since(executionTimer).String() + ")")
-	}
+    err = cmd.Start()
+  	if err != nil {
+  		// file (probably) not found
+  		//job.WriteLog("The file to be executed was not found on '" + job.PathToScript + "'")
+      job.WriteLog("Error executing file: " + err.Error())
+      log.Fatal(err)
+  	}
 
-	job.WriteLog("Next Check in " + (time.Duration(job.NextCheckDelay) * time.Minute).String())
+  	output, _ := ioutil.ReadAll(stdout)
+  	err = cmd.Wait()
+
+  	jobOutput = string(output)
+
+  	if err != nil {
+  		job.WriteLog("The job didn´t execute successfully")
+  		job.WriteLog("output of job: " + jobOutput)
+      job.WriteLog("Retrying in " + (time.Duration(job.ExecutionAttemptDelay) * time.Second).String() + ". " +
+        strconv.Itoa(job.NumberOfExecutionAttempts - jobExecutionCounter + 1) + " tries left before updating component status in Cachet")
+      time.Sleep(time.Duration(job.ExecutionAttemptDelay) * time.Second)
+  	} else {
+  		job.WriteLog("Job execution successfull (" + time.Since(executionTimer).String() + ")")
+      errorExecutingJob = false
+  	}
+  }
 
 	return jobOutput, err
 }

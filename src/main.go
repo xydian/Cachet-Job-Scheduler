@@ -201,6 +201,14 @@ func main() {
 				// ticker channel notifies.
 				// This helper function was written in favor of code duplication
 				jobExecution := func() {
+					/*var jobError error
+					jobError = nil
+					executionTriesCounter := 0
+
+					for jobError != nil | executionTriesCounter <= job.NumberOfExecutionAttempts {
+
+					}*/
+
 					_, jobError := job.Execute()
 					if jobError != nil {
 						compID := job.CachetComponentID
@@ -229,6 +237,7 @@ func main() {
 							}
 						}
 					}
+					job.WriteLog("Next Check in " + (time.Duration(job.NextCheckDelay) * time.Minute).String())
 				}
 				// Execute once
 				jobExecution()
@@ -258,7 +267,7 @@ func main() {
 	// wait until we get SIGINT or SIGTERM e.g. by pressing ctrl + c
 	<-quitSigChannel
 
-	log.Println("Jobscheduler received SIGINT/SIGTERM. Starting to stop jobs...")
+	log.Println("Jobscheduler received SIGINT/SIGTERM. Stopping jobs...")
 
 	quitGoroutinesChannel <- true
 

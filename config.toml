@@ -8,6 +8,7 @@ Api_Token = "askjdF9hbaKHafdas8TO4"
 # in this section you configure the monitoring jobs that are going to be
 # executed periodically
 [Jobs]
+  # simple website monitor job, checking if google website is up
   [Jobs.CheckGoogleWebsite] # this is the single identifier of each job
   Enabled = true
   # this is the command that is going to be executed periodically
@@ -29,7 +30,15 @@ Api_Token = "askjdF9hbaKHafdas8TO4"
   Create_incident_on_failure = true
   # working directory of the script/command
   Working_directory = ""
+  # number of execution retires of command, if the command still fails (Exit
+  # code > 0) after the number of attempts below,
+  # the component status is updated in Cachet
+  Number_of_execution_retries = 1
+  # delay in seconds between the execution retries. In this case the wget command
+  # is executed after 5 seconds
+  Execution_retry_delay = 5
 
+  # simple job to check if nameserver is responding
   [Jobs.CheckGoogleNameserver]
   Enabled = true
   Command_to_execute = "dig"
@@ -39,3 +48,5 @@ Api_Token = "askjdF9hbaKHafdas8TO4"
   Cachet_component_id = 2
   Cachet_status = 2
   Working_directory = ""
+  Number_of_execution_retries = 1
+  Execution_retry_delay = 5
