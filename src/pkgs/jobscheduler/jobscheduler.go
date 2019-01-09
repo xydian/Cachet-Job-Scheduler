@@ -167,5 +167,8 @@ func (job *Job) Execute() (string, error) {
   	}
   }
 
-	return jobOutput, err
+  if errorExecutingJob {
+    return jobOutput, err
+  }
+  return jobOutput, nil
 }
