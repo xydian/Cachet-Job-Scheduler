@@ -26,6 +26,7 @@ var jobLogDirectory string
 var config jobscheduler.Config
 var configFilePath string
 var cachetClient *cachet.Client
+var logFile *os.File
 
 // Reading config files, creating/opening log files, connecting to cachet instance
 func init() {
@@ -63,18 +64,17 @@ func init() {
 	}
 
 	// Trying to open general logfile
-	f, err := os.OpenFile(generalLogFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	logFile, err := os.OpenFile(generalLogFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("Error opening general logfile: %v", err)
 	}
-	defer f.Close()
 
 	// Setting log output to the general logfile, but only if debug mode is disabled
 	if !debugMode {
 		log.Println("Debug mode is disabled. Logging to folder " + logPath)
 		log.Println("General logs will be written to jobscheduler.log. Job specific " +
 			"logs are written to their respective log files")
-		log.SetOutput(f)
+		log.SetOutput(logFile)
 	}
 
 	log.Println("Checking whether log directory for jobs exists...")
@@ -118,7 +118,7 @@ func init() {
 		printDebugLog("Opening (or creating) log file for job: " + jobName)
 
 		jobLogFile := jobLogDirectory + "/" + jobName + ".log"
-		f, err = os.OpenFile(jobLogFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		f, err := os.OpenFile(jobLogFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
 			log.Fatalf("Error opening logfile of job %v: %v", jobName, err)
 
@@ -277,6 +277,13 @@ func main() {
 	// wait for all go routines to stop
 	waitgroup.Wait()
 	log.Println("All jobs have been stopped")
+
+	// closing files
+	printDebugLog("Closing general log file (jobscheduler.log)...")
+	err := logFile.Close()
+	if err != nil {
+		printDebugLog(err.Error())
+	}
 }
 
 func printDebugLog(logString string) {
