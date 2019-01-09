@@ -247,6 +247,7 @@ func main() {
 					select {
 					case _ = <-quitGoroutinesChannel:
 						waitgroup.Done()
+						log.Println("Job '" + job.Name + "' stopped")
 						return
 					case <-ticker.C:
 						jobExecution()
