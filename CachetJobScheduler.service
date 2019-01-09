@@ -1,0 +1,33 @@
+# Template file for a systemd service file
+# replace all placeholders between angle brackets like this: <placeholder> 
+
+[Unit]
+Description=Cachet Job Scheduler - run scripts periodically
+ConditionPathExists=<Path to CachetJobScheduler binary>
+After=network.target
+
+[Service]
+Type=simple
+User=<User used to run CachetJobScheduler>
+Group=<Group used to run CachetJobScheduler>
+LimitNOFILE=1024
+
+Restart=on-failure
+RestartSec=60
+startLimitIntervalSec=60
+
+WorkingDirectory=<Path to CachetJobScheduler directory>
+ExecStart=<Path to CachetJobScheduler binary>
+
+# make sure log directory exists
+PermissionsStartOnly=true
+ExecStartPre=/bin/mkdir -p /var/log/CachetJobScheduler
+ExecStartPre=/bin/chown -R <User>:<Group> /var/log/CachetJobScheduler
+ExecStartPre=/bin/chmod 755 /var/log/CachetJobScheduler
+ExecStartPre=/usr/bin/touch /var/log/CachetJobScheduler/jobscheduler.log
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=CachetJobScheduler
+
+[Install]
+WantedBy=multi-user.target
