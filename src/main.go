@@ -176,7 +176,7 @@ func main() {
 
 	// When SIGINT or SIGTERM is caught write to the quitChannel
 	quitSigChannel := make(chan os.Signal)
-	signal.Notify(quitSigChannel, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(quitSigChannel, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 
 	// making channel to stop the jobs (goroutines)
 	quitGoroutinesChannel := make(chan bool)
