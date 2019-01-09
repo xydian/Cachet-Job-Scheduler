@@ -90,7 +90,7 @@ func (job *Job) CheckConfig() error {
 		return errors.New("Path_to_script is not allowed to be empty")
 	}
   if job.NumberOfExecutionAttempts <= 0 {
-    return errors.New("Number_of_execution_attempts has to be greater than 0")
+    return errors.New("Number_of_execution_retries has to be greater than 0")
   }
 
 	return nil
@@ -103,7 +103,7 @@ func (job *Job) WriteLog(log string) {
 }
 
 // Execute executes a job based on the job config
-func (job *Job) Execute() (string, error) {
+func (job *Job) Execute(quitChannel chan bool) (string, error) {
   var err error
 
   jobExecutionCounter := 0
@@ -160,7 +160,21 @@ func (job *Job) Execute() (string, error) {
   		job.WriteLog("output of job: " + jobOutput)
       job.WriteLog("Retrying in " + (time.Duration(job.ExecutionAttemptDelay) * time.Second).String() + ". " +
         strconv.Itoa(job.NumberOfExecutionAttempts - jobExecutionCounter + 1) + " tries left before updating component status in Cachet")
-      time.Sleep(time.Duration(job.ExecutionAttemptDelay) * time.Second)
+      //time.Sleep(time.Duration(job.ExecutionAttemptDelay) * time.Second)
+
+      ticker := time.NewTicker(time.Duration(job.ExecutionAttemptDelay) * time.Second)
+      defer ticker.Stop()
+
+      // We are going to delay the execution for the specified time.
+      // At first I used time.Sleep here, but then we have no way to stop
+      // the job if the function is in sleep mode
+      select {
+      case _ = <-quitChannel:
+        job.WriteLog("Job received signal to stop")
+        return "", nil
+      case <-ticker.C:
+        // just resume if the sleep time is over
+      }
   	} else {
   		job.WriteLog("Job execution successfull (" + time.Since(executionTimer).String() + ")")
       errorExecutingJob = false

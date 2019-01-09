@@ -209,7 +209,7 @@ func main() {
 
 					}*/
 
-					_, jobError := job.Execute()
+					_, jobError := job.Execute(quitGoroutinesChannel)
 					if jobError != nil {
 						compID := job.CachetComponentID
 						//log.Println(cachetClient.Components.)
@@ -280,11 +280,7 @@ func main() {
 	log.Println("All jobs have been stopped")
 
 	// closing files
-	printDebugLog("Closing general log file (jobscheduler.log)...")
-	err := logFile.Close()
-	if err != nil {
-		printDebugLog(err.Error())
-	}
+	logFile.Close()
 }
 
 func printDebugLog(logString string) {

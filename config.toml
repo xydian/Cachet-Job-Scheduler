@@ -2,7 +2,7 @@
 
 # host of your cachet instance
 #Host = "https://status.cachet.io/"
-Host = "https://status.webforeveryone.de/"
+Host = "https://status.cachet.io/"
 Api_Token = "askjdF9hbaKHafdas8TO4"
 
 # in this section you configure the monitoring jobs that are going to be
