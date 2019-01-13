@@ -237,7 +237,7 @@ func main() {
 							}
 						}
 					}
-					job.WriteLog("Next Check in " + (time.Duration(job.NextCheckDelay) * time.Minute).String())
+					//job.WriteLog("Next Check in " + (time.Duration(job.NextCheckDelay) * time.Minute).String())
 				}
 				// Execute once
 				jobExecution()
