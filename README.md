@@ -66,8 +66,14 @@ tool has write permissions to it
 - Run CachetJobScheduler
 
 ### Starting/Stopping the daemon
-You have to register the CachetJobScheduler.service file at systemd. Then you can
-start/stop the JobScheduler by the following command
+You have to register the CachetJobScheduler.service file at systemd. On debian you have to
+place the .service file at /lib/systemd/system/CachetJobScheduler.service. Then
+you can enable the service by the following command:
+
+`sudo systemctl enable CachetJobScheduler.service`
+
+Now you can start/stop the service by executing:
+
 `sudo systemctl CachetJobScheduler start/stop`
 
 ### CachetJobScheduler arguments
